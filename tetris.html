@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        html {padding:0; margin:0;}
+        .message_field {
+            margin: 0px auto;
+            width: 500px;
+            text-align: center;
+        }
+        .game_board {
+            border:1px solid black;
+            margin: 0px auto;
+            height: 540px;
+            width: 300px;
+            display: grid;
+            position:relative;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows:  repeat(18, 30px);
+        }
+        .game_square {
+            border:1px solid lightgray;
+            grid-column: auto;
+            grid-row: auto;
+            animation-name: newSquare;
+            animation-duration: 1s;
+        }
+        @keyframes newSquare {
+            from {background-color: gray;}
+            to {background-color: white;}
+        }
+        .message_begin{
+            animation: message_begin 1s infinite alternate;
+        }
+        @keyframes message_begin {
+            from {background-color: lightcoral;}
+            to {background-color: lightblue;}
+        }
+        .message_play{
+            animation: message_play 2s;
+            background-color: lightgreen;
+        }
+        @keyframes message_play {
+            from {background-color: white;}
+            to {background-color: lightgreen;}
+        }
+
+        .block_black{
+            background-color: black;
+        }
+
+        .block_white{
+            background-color: white;
+        }
+    </style>
+    <script>
+        const pieces = [
+            {name:"cube", shape:[[1,1],[1,1]]},
+            {name:"delta", shape:[[0,1],[1,1],[0,1]]},
+            {name:"bar", shape:[[1,1,1,1]]},
+            {name:"J", shape:[[0,1],[0,1],[1,1]]},
+            {name:"L", shape:[[1,0],[1,0],[1,1]]},
+            {name:"S", shape:[[1,0],[1,1],[0,1]]},
+            {name:"Z", shape:[[0,1],[1,1],[1,0]]}
+        ];
+        let blockField=[];
+        let lifeCycle = "LOADING";
+        let messageField;
+        let currentPiece={shape:[]};
+        const buildBoard = () =>{
+            messageField = document.querySelector(".message_field");
+            for(indexY=0;indexY<=17;indexY++){
+                blockField.push([]);
+                for(indexX=0;indexX<=9;indexX++){
+                    const newSquare= document.createElement("div");
+                    document.getElementById("board_container").appendChild( newSquare);
+                    newSquare.classList.add("block_white");
+                    newSquare.classList.add("game_square");
+                    newSquare.classList.add("col_"+indexX);
+                    newSquare.classList.add("row_"+indexY);
+                    newSquare.setAttribute("id", "s_" + indexX + "_" + indexY);
+                    blockField[indexY].push(0);
+                }
+            }
+            gameReady();
+        }
+
+        const gameReady = () => {
+            messageField.classList.add("messageBegin");
+            messageField.innerHTML="PRESS SPACE TO BEGIN";
+            lifeCycle = "START";
+        }
+
+        const spawn = () => {
+            if( !currentPiece.shape.length){
+                currentPiece = pieces[Math.floor(Math.random()*6)];
+                currentPiece.y = 0;
+                currentPiece.x = Math.floor((blockField[0].length - currentPiece.shape[0].length)/2);
+                currentPiece.rotation = 0;
+            }
+            movePieceTo(currentPiece.x, currentPiece.y);
+        }
+
+        const movePieceTo = (targetX,targetY,targetRotation=null) => {
+            targetRotation = (targetRotation === null) ? currentPiece.rotation : targetRotation;
+
+            //Clear the pieces previous location
+            rotatedShape = rotatePiece(currentPiece.shape,currentPiece.rotation);
+            rotatedShape.forEach((row_value, indexY)=>{
+                row_value.forEach((col_value, indexX) =>{
+                    blockField[currentPiece.y+indexY][currentPiece.x+indexX] = 0;
+                });
+            });
+            refreshBlockField();
+
+            //Draw the current piece with rotation
+            currentPiece.rotation = targetRotation;
+            rotatedShape = rotatePiece(currentPiece.shape,currentPiece.rotation);
+
+            if(targetX <0) targetX=0;
+            if(targetX+rotatedShape[0].length > blockField[0].length ) targetX =blockField[0].length-rotatedShape[0].length;
+
+            if(targetY+rotatedShape.length > blockField.length ) targetY =blockField.length-rotatedShape.length;
+
+            currentPiece.x=targetX;
+            currentPiece.y=targetY;
+
+            console.log(rotatedShape)
+            rotatedShape.forEach((row_value, indexY)=>{
+                row_value.forEach((col_value, indexX) =>{
+                    blockField[targetY+indexY][targetX+indexX] = rotatedShape[indexY][indexX];
+                });
+            });
+            refreshBlockField();
+            lifeCycle="MOVE";
+        };
+
+        const refreshBlockField = () => {
+            blockField.forEach((row_value, indexY)=>{
+                row_value.forEach((col_value, indexX) =>{
+                    document.getElementsByClassName( "row_"+indexY).item(indexX).classList.remove("block_white");
+                    document.getElementsByClassName( "row_"+indexY).item(indexX).classList.remove("block_black");
+                    if( blockField[indexY][indexX] ) document.getElementsByClassName( "row_"+indexY).item(indexX).classList.add("block_black");
+                });
+            });
+        }
+
+        const rotatePiece = (pieceIn, rotation) => {
+            let rotIx, rowIx, colIx;
+            let workingPiece = pieceIn;
+
+            if(rotation===0){
+                rotatedShape=workingPiece;
+            } else {
+                for(rotIx=0; rotIx<rotation; rotIx++){
+                    rotatedShape = [];
+                    let width = workingPiece.length;
+                    let height = workingPiece[0].length;
+                    for(rowIx=0; rowIx<height; rowIx++) {
+                        rotatedShape[rowIx] = [];
+                        for(colIx=0; colIx<width; colIx++) {
+                            rotatedShape[rowIx][colIx] = workingPiece[colIx][rowIx];
+                        }
+                    }
+                    workingPiece = rotatedShape;
+                }
+            }
+            return rotatedShape;
+        }
+
+        document.addEventListener('keyup', function (event) {
+            // Stop Whatever Else You Are Doing With The Event
+            event.preventDefault();
+            console.log(event.keyCode);
+
+            //Pause or Menu (Escape Key)
+            if (event.keyCode === 27) {
+                return;
+            }
+
+            //Manage Starting New Game
+            if (lifeCycle === "START" && event.keyCode === 32) {
+                messageField.classList.remove("message_begin");
+                messageField.classList.add("message_play");
+                messageField.innerHTML="PRESS A/S/D TO MOVE";
+                spawn();
+                return;
+            }
+
+            // Move Step in Lifecycle
+            if(lifeCycle === "MOVE"){
+                //Move Left [Left Arrow / A]
+                if( event.keyCode === 65 || event.keyCode === 37){
+                    movePieceTo( currentPiece.x-1, currentPiece.y );
+                    return;
+                }
+                //Move Right [Right Arrow / D]
+                if( event.keyCode === 68 || event.keyCode === 39){
+                    movePieceTo( currentPiece.x+1, currentPiece.y );
+                    return;
+                }
+                //Rotate [Up Arrow / W]
+                if( event.keyCode === 87 || event.keyCode === 38){
+                    let thisRotate = currentPiece.rotation+1;
+                    if(thisRotate >= 4 ) thisRotate=0;
+                    movePieceTo( currentPiece.x, currentPiece.y, thisRotate );
+                    return;
+                }
+                //Drop [Down Arrow / S]
+                if( event.keyCode === 83 || event.keyCode === 40){
+                    movePieceTo( currentPiece.x, currentPiece.y+1 );
+                    return;
+                }
+            }
+
+        }, false);
+    </script>
+</head>
+<html>
+    <div id="board_container" class="game_board">
+    </div>
+    <div class="message_field">LOADING...</div>
+</html>
+<script>buildBoard();</script>
