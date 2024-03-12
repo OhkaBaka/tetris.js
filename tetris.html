@@ -51,6 +51,9 @@
         .block_white{
             background-color: white;
         }
+        .border_red{
+            border-color: red;
+        }
     </style>
     <script>
         const pieces = [
@@ -100,7 +103,10 @@
             movePieceTo(currentPiece.x, currentPiece.y);
         }
 
-        const movePieceTo = (targetX,targetY,targetRotation=null) => {
+        const movePieceTo = (targetX,targetY,targetRotation=0) => {
+            console.log(currentPiece);
+            console.log(targetRotation);
+            
             targetRotation = (targetRotation === null) ? currentPiece.rotation : targetRotation;
 
             //Clear the pieces previous location
@@ -110,12 +116,19 @@
                     blockField[currentPiece.y+indexY][currentPiece.x+indexX] = 0;
                 });
             });
-            refreshBlockField();
+            refreshBlockField(true);
+
+            //Rotate the current piece to the new position
+            if(targetRotation==4) targetRotation=0;
+            if(targetRotation==-1) targetRotation=3;
+            currentPiece.rotation = targetRotation;
+            rotatedShape = currentPiece.shape;
+            for(rix=1; rix<=currentPiece.rotation; rix++ ){
+                console.log(currentPiece.rotation, rix);
+                rotatedShape = rotatePiece(rotatedShape);
+            }
 
             //Draw the current piece with rotation
-            currentPiece.rotation = targetRotation;
-            rotatedShape = rotatePiece(currentPiece.shape,currentPiece.rotation);
-
             if(targetX <0) targetX=0;
             if(targetX+rotatedShape[0].length > blockField[0].length ) targetX =blockField[0].length-rotatedShape[0].length;
 
@@ -134,7 +147,7 @@
             lifeCycle="MOVE";
         };
 
-        const refreshBlockField = () => {
+        const refreshBlockField = (displayOld) => {
             blockField.forEach((row_value, indexY)=>{
                 row_value.forEach((col_value, indexX) =>{
                     document.getElementsByClassName( "row_"+indexY).item(indexX).classList.remove("block_white");
@@ -144,29 +157,27 @@
             });
         }
 
-        const rotatePiece = (pieceIn, rotation) => {
-            let rotIx, rowIx, colIx;
-            let workingPiece = pieceIn;
+        const rotatePiece = (piece)=>{
+            const numRows = piece.length;
+            const numCols = piece[0].length;
 
-            if(rotation===0){
-                rotatedShape=workingPiece;
-            } else {
-                for(rotIx=0; rotIx<rotation; rotIx++){
-                    rotatedShape = [];
-                    let width = workingPiece.length;
-                    let height = workingPiece[0].length;
-                    for(rowIx=0; rowIx<height; rowIx++) {
-                        rotatedShape[rowIx] = [];
-                        for(colIx=0; colIx<width; colIx++) {
-                            rotatedShape[rowIx][colIx] = workingPiece[colIx][rowIx];
-                        }
-                    }
-                    workingPiece = rotatedShape;
+            // Transpose the matrix
+            const transposedMatrix = [];
+            for (let j = 0; j < numCols; j++) {
+                transposedMatrix[j] = [];
+                for (let i = 0; i < numRows; i++) {
+                    transposedMatrix[j][i] = piece[i][j];
                 }
             }
-            return rotatedShape;
+
+            for (let i = 0; i < numCols; i++) {
+                transposedMatrix[i].reverse();
+            }
+
+            return transposedMatrix;
         }
 
+        
         document.addEventListener('keyup', function (event) {
             // Stop Whatever Else You Are Doing With The Event
             event.preventDefault();
@@ -200,9 +211,7 @@
                 }
                 //Rotate [Up Arrow / W]
                 if( event.keyCode === 87 || event.keyCode === 38){
-                    let thisRotate = currentPiece.rotation+1;
-                    if(thisRotate >= 4 ) thisRotate=0;
-                    movePieceTo( currentPiece.x, currentPiece.y, thisRotate );
+                    movePieceTo( currentPiece.x, currentPiece.y, currentPiece.rotation+1 );
                     return;
                 }
                 //Drop [Down Arrow / S]
