@@ -94,26 +94,39 @@
         }
 
         const spawn = () => {
-            if( !currentPiece.shape.length){
-                currentPiece = pieces[Math.floor(Math.random()*6)];
-                currentPiece.y = 0;
-                currentPiece.x = Math.floor((blockField[0].length - currentPiece.shape[0].length)/2);
-                currentPiece.rotation = 0;
-            }
+            currentPiece = pieces[Math.floor(Math.random()*6)];
+            currentPiece.y = 0;
+            currentPiece.x = Math.floor((blockField[0].length - currentPiece.shape[0].length)/2);
+            currentPiece.rotation = 0;
             movePieceTo(currentPiece.x, currentPiece.y);
         }
 
-        const movePieceTo = (targetX,targetY,targetRotation=0) => {
-            console.log(currentPiece);
-            console.log(targetRotation);
-            
+        const checkBlocked = ()=>{
+            let blocked=false;
+            rotatedShape.forEach((row_value, indexY)=>{
+                row_value.forEach((col_value, indexX) =>{
+                    if(col_value && indexY+currentPiece.y == blockField.length-1){
+                        //hit bottom
+                        blocked=true;
+                    }
+                });
+            });
+            if(blocked){
+                spawn();
+            }
+        }
+
+        const movePieceTo = (targetX,targetY,targetRotation=null) => {
             targetRotation = (targetRotation === null) ? currentPiece.rotation : targetRotation;
 
             //Clear the pieces previous location
-            rotatedShape = rotatePiece(currentPiece.shape,currentPiece.rotation);
+            rotatedShape = currentPiece.shape;
+            for(rix=1; rix<=currentPiece.rotation; rix++ ){
+                rotatedShape = rotatePiece(rotatedShape);
+            }
             rotatedShape.forEach((row_value, indexY)=>{
                 row_value.forEach((col_value, indexX) =>{
-                    blockField[currentPiece.y+indexY][currentPiece.x+indexX] = 0;
+                    if(col_value) blockField[currentPiece.y+indexY][currentPiece.x+indexX] = 0;
                 });
             });
             refreshBlockField(true);
@@ -121,10 +134,9 @@
             //Rotate the current piece to the new position
             if(targetRotation==4) targetRotation=0;
             if(targetRotation==-1) targetRotation=3;
-            currentPiece.rotation = targetRotation;
+            if(targetRotation>=0) currentPiece.rotation = targetRotation;
             rotatedShape = currentPiece.shape;
             for(rix=1; rix<=currentPiece.rotation; rix++ ){
-                console.log(currentPiece.rotation, rix);
                 rotatedShape = rotatePiece(rotatedShape);
             }
 
@@ -137,7 +149,6 @@
             currentPiece.x=targetX;
             currentPiece.y=targetY;
 
-            console.log(rotatedShape)
             rotatedShape.forEach((row_value, indexY)=>{
                 row_value.forEach((col_value, indexX) =>{
                     blockField[targetY+indexY][targetX+indexX] = rotatedShape[indexY][indexX];
@@ -145,6 +156,8 @@
             });
             refreshBlockField();
             lifeCycle="MOVE";
+
+            checkBlocked();
         };
 
         const refreshBlockField = (displayOld) => {
@@ -181,7 +194,6 @@
         document.addEventListener('keyup', function (event) {
             // Stop Whatever Else You Are Doing With The Event
             event.preventDefault();
-            console.log(event.keyCode);
 
             //Pause or Menu (Escape Key)
             if (event.keyCode === 27) {
