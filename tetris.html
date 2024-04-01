@@ -105,9 +105,18 @@
             let blocked=false;
             rotatedShape.forEach((row_value, indexY)=>{
                 row_value.forEach((col_value, indexX) =>{
-                    if(col_value && indexY+currentPiece.y == blockField.length-1){
+                    if(col_value){
                         //hit bottom
-                        blocked=true;
+                        if( indexY+currentPiece.y == blockField.length-1){
+                            blocked=true;
+                        }
+
+                        if( blockField[indexX+currentPiece.x][indexY+currentPiece.y+1]){
+                            console.log("BLOCKED!");
+                            console.log( "X,Y",indexX+currentPiece.x, indexY+currentPiece.y+1);
+                            console.log("BLOCKFIELD",blockField)
+                            blocked=true;
+                        }
                     }
                 });
             });
@@ -146,6 +155,9 @@
 
             if(targetY+rotatedShape.length > blockField.length ) targetY =blockField.length-rotatedShape.length;
 
+            // Check if new position is blocked
+            checkBlocked();
+
             currentPiece.x=targetX;
             currentPiece.y=targetY;
 
@@ -157,7 +169,6 @@
             refreshBlockField();
             lifeCycle="MOVE";
 
-            checkBlocked();
         };
 
         const refreshBlockField = (displayOld) => {
